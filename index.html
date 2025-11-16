@@ -10,12 +10,12 @@
     h2 { margin:6px 0; font-size:16px; color:#ddd; }
     .controls { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
     button { padding:10px 14px; font-size:14px; border-radius:8px; border:0; cursor:pointer; }
-    input { padding:8px; border-radius:6px; border:0; width:260px; }
     .green { background:#28a745; color:white; }
     .red { background:#dc3545; color:white; }
     .blue { background:#0d6efd; color:white; }
     .muted { background:#444; color:#eee; }
     .box { width:100%; background:#111; padding:10px; border-radius:10px; margin:12px 0; font-size:13px; max-height:220px; overflow:auto; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .small { font-size:12px; color:#bbb; }
     table { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; }
     th,td { padding:6px 8px; border-bottom:1px solid #222; text-align:left; }
@@ -24,32 +24,28 @@
     .tag.SMALL { background:#9ef; color:#000; }
     .tag.WIN { background:#28a745; color:#fff; }
     .tag.LOSS { background:#dc3545; color:#fff; }
+    .right { margin-left:auto; }
 </style>
 </head>
 <body>
 
 <h1>🐰 Bunny Bot — 1m Prediction Panel (Safe)</h1>
-
-<!-- NEW SETTINGS BOX -->
-<div class="box">
-    <h3>🔧 Bot Configuration</h3>
-    <input id="botToken" placeholder="Enter BOT TOKEN"><br><br>
-    <input id="channelId" placeholder="Enter CHANNEL ID"><br><br>
-    <button id="saveSettings" class="blue">Save Settings</button>
-</div>
-
 <h2 id="period">Period: LOADING...</h2>
 <h2 id="timer">Timer: 00 : 00</h2>
 
 <div class="controls">
     <button id="start" class="green">Start Scheduler</button>
     <button id="stop" class="red">Stop Scheduler</button>
+
     <button id="sendBig" class="blue">Send BIG</button>
     <button id="sendSmall" class="muted">Send SMALL</button>
+
     <button id="autoRandom" class="muted">Auto Random On/Off</button>
+
     <button id="markWin" class="green">Mark WIN</button>
     <button id="markLoss" class="red">Mark LOSS</button>
-    <button id="exportCSV" class="muted">Export CSV</button>
+
+    <button id="exportCSV" class="muted right">Export CSV</button>
 </div>
 
 <div class="box" id="log">System Log<br></div>
@@ -57,7 +53,7 @@
 <div class="box">
     <div style="display:flex; align-items:center; justify-content:space-between;">
         <div><strong>Prediction History (last 200)</strong></div>
-        <div class="small">Saved in browser (localStorage)</div>
+        <div class="small">Stored locally in browser (localStorage)</div>
     </div>
     <table id="historyTable">
         <thead><tr><th>Time (UTC)</th><th>Period</th><th>Prediction</th><th>Result</th><th>Notes</th></tr></thead>
@@ -66,31 +62,22 @@
 </div>
 
 <script>
-/* ------------ LOAD CONFIG ------------ */
-let BOT_TOKEN = localStorage.getItem("bunny_bot_token") || "";
-let CHANNEL = localStorage.getItem("bunny_channel_id") || "";
+/* ------------ CONFIG ------------ */
+const BOT_TOKEN = "8554020410:AAFXDB17K1XDNHmziXK3woY44MYcjnjHuok";
+const CHANNEL = "-1001827820044";
+const CHANNEL_USERNAME = "";
 
-document.getElementById("botToken").value = BOT_TOKEN;
-document.getElementById("channelId").value = CHANNEL;
-
-document.getElementById("saveSettings").onclick = () => {
-    BOT_TOKEN = document.getElementById("botToken").value.trim();
-    CHANNEL = document.getElementById("channelId").value.trim();
-
-    localStorage.setItem("bunny_bot_token", BOT_TOKEN);
-    localStorage.setItem("bunny_channel_id", CHANNEL);
-
-    log("Settings saved successfully!");
-};
-
-/* ------------ OTHER CONFIG ------------ */
+/* CLICKABLE PLAY NOW LINK IS HERE */
 const PLAY_NOW_URL = "https://51gamei.com/#/register?invitationCode=48367860109";
 
+/* Stickers */
 const STICKERS = {
-    start:"CAACAgUAAxkBAAEPx4BpF-g77IB7TFT5IGAvLh5_jSHKTgACzRwAAudvOVXl3rjApSqHmzYE",
-    stop:"CAACAgUAAxkBAAEPx4JpF-hFGd7x0wABHk-dG_gMeUMojCYAApkZAAKGXzlVDeujW5BoBas2BA",
-    big_win:"CAACAgUAAxkBAAEPx3xpF-fpppQJbmmK8RFwXqkGIJAsVwACmRkAAneWuFcK-IaUzF7ZwzYE",
-    big_loss:"CAACAgUAAxkBAAEPx35pF-gpulhbVW-WTsDsJu9AaL9zsQACIxMAAvF4GVTCm3ZEJ_htbTYE"
+    start: "CAACAgUAAxkBAAEPx4BpF-g77IB7TFT5IGAvLh5_jSHKTgACzRwAAudvOVXl3rjApSqHmzYE",
+    stop: "CAACAgUAAxkBAAEPx4JpF-hFGd7x0wABHk-dG_gMeUMojCYAApkZAAKGXzlVDeujW5BoBas2BA",
+    big_win: "CAACAgUAAxkBAAEPx3xpF-fpppQJbmmK8RFwXqkGIJAsVwACmRkAAneWuFcK-IaUzF7ZwzYE",
+    big_loss: "CAACAgUAAxkBAAEPx35pF-gpulhbVW-WTsDsJu9AaL9zsQACIxMAAvF4GVTCm3ZEJ_htbTYE",
+    small_win: "CAACAgUAAxkBAAEPx3xpF-fpppQJbmmK8RFwXqkGIJAsVwACmRkAAneWuFcK-IaUzF7ZwzYE",
+    small_loss: "CAACAgUAAxkBAAEPx35pF-gpulhbVW-WTsDsJu9AaL9zsQACIxMAAvF4GVTCm3ZEJ_htbTYE"
 };
 
 let schedulerRunning = false;
@@ -100,13 +87,14 @@ let history = loadHistory();
 /* ------------ HELPERS ------------ */
 function getAutoPeriod() {
     const now = new Date();
-    const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
-    const minutes = now.getUTCHours()*60 + now.getUTCMinutes();
-    return `${ymd}1000${10001 + minutes}`;
+    const yyyyMMdd = now.toISOString().slice(0,10).replace(/-/g,'');
+    const minutesSinceStart = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const code = 10001 + minutesSinceStart;
+    return `${yyyyMMdd}1000${String(code)}`;
 }
 
-function utcTimeString() {
-    return new Date().toISOString().replace('T',' ').split('.')[0] + " UTC";
+function utcTimeString(date = new Date()) {
+    return date.toISOString().replace('T',' ').split('.')[0] + " UTC";
 }
 
 function log(msg) {
@@ -115,40 +103,48 @@ function log(msg) {
     box.scrollTop = box.scrollHeight;
 }
 
-/* ------------ TELEGRAM ------------ */
+/* ------------ Telegram SendMessage (with HTML mode!) ------------ */
 function sendMessageToTelegram(text) {
     return fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ chat_id: CHANNEL, text, parse_mode:"HTML" })
-    }).then(r=>r.json());
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ 
+            chat_id: CHANNEL, 
+            text,
+            parse_mode: "HTML"
+        })
+    }).then(res => res.json());
 }
 
 function sendSticker(id) {
     return fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendSticker`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ chat_id: CHANNEL, sticker:id })
-    });
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ chat_id: CHANNEL, sticker: id })
+    }).then(res => res.json());
 }
 
 /* ------------ HISTORY ------------ */
 function loadHistory() {
-    const raw = localStorage.getItem("bunny_history_v1");
-    return raw ? JSON.parse(raw) : [];
+    try {
+        const raw = localStorage.getItem("bunny_history_v1");
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
 }
 
 function saveHistory() {
     localStorage.setItem("bunny_history_v1", JSON.stringify(history.slice(-200)));
 }
 
-function addHistoryEntry(e) {
-    history.push(e);
+function addHistoryEntry(entry) {
+    history.push(entry);
     saveHistory();
     renderHistory();
 }
 
-/* ------------ RENDER ------------ */
+/* ------------ UI RENDER ------------ */
 function renderHistory() {
     const tbody = document.querySelector("#historyTable tbody");
     tbody.innerHTML = "";
@@ -159,55 +155,75 @@ function renderHistory() {
             <td>${e.period}</td>
             <td><span class="tag ${e.prediction}">${e.prediction}</span></td>
             <td>${e.result ? `<span class="tag ${e.result}">${e.result}</span>` : ""}</td>
-            <td>${e.notes || ""}</td>`;
+            <td>${e.notes || ""}</td>
+        `;
         tbody.appendChild(tr);
     });
 }
 
-/* ------------ MESSAGE BUILDER ------------ */
-function buildPredictionMessage(pred, period) {
+/* ------------ MESSAGE BUILDER (PLAY NOW LINK ADDED HERE) ------------ */
+function buildPredictionMessage(prediction, period) {
     return `📆 PERIOD: ${period}
-🎯 PREDICTION: ${pred}
+🎯 PREDICTION: ${prediction}
 🎮 GAME: <a href="${PLAY_NOW_URL}">PLAY NOW</a>
-🧿 LOGIC: BUNNY BOT`;
+🧿 LOGIC: BUNNY BOT
+${CHANNEL_USERNAME}`;
 }
 
 /* ------------ CORE ------------ */
 async function sendPrediction(prediction, notes="") {
-    if (!BOT_TOKEN || !CHANNEL) {
-        return log("Error: Set BOT TOKEN & CHANNEL ID first!");
-    }
-
     const period = getAutoPeriod();
     const text = buildPredictionMessage(prediction, period);
-    const resp = await sendMessageToTelegram(text);
 
+    const resp = await sendMessageToTelegram(text);
     if (resp?.ok) {
         log(`Prediction sent: ${prediction}`);
-        addHistoryEntry({ ts:utcTimeString(), period, prediction, result:null, notes });
+        addHistoryEntry({
+            ts: utcTimeString(),
+            period,
+            prediction,
+            result: null,
+            notes
+        });
     } else {
         log("Telegram Error: " + JSON.stringify(resp));
     }
 }
 
 /* ------------ SCHEDULER ------------ */
-function startScheduler(){ schedulerRunning = true; sendSticker(STICKERS.start); log("Scheduler started"); }
-function stopScheduler(){ schedulerRunning = false; sendSticker(STICKERS.stop); log("Scheduler stopped"); }
+function startScheduler() {
+    if (schedulerRunning) return;
+    schedulerRunning = true;
+    log("Scheduler started");
+    sendSticker(STICKERS.start);
+}
+
+function stopScheduler() {
+    schedulerRunning = false;
+    log("Scheduler stopped");
+    sendSticker(STICKERS.stop);
+}
 
 setInterval(() => {
-    const sec = new Date().getUTCSeconds();
+    const now = new Date();
+    const sec = now.getUTCSeconds();
     document.getElementById("timer").innerText = `Timer: 00 : ${String(59-sec).padStart(2,'0')}`;
     document.getElementById("period").innerText = `Period: ${getAutoPeriod()}`;
 
-    if (schedulerRunning && sec === 59 && autoRandom) {
-        const pick = Math.random() > 0.5 ? "BIG" : "SMALL";
+    if (schedulerRunning && sec === 59) {
+        if (!autoRandom) {
+            log("Scheduler hit 59 but AutoRandom OFF");
+            return;
+        }
+        const pick = Math.random()>0.5?"BIG":"SMALL";
         sendPrediction(pick, "scheduler_auto");
     }
 }, 1000);
 
-/* ------------ BUTTONS ------------ */
+/* ------------ BUTTON ACTIONS ------------ */
 document.getElementById("start").onclick = startScheduler;
 document.getElementById("stop").onclick = stopScheduler;
+
 document.getElementById("sendBig").onclick = () => sendPrediction("BIG","manual");
 document.getElementById("sendSmall").onclick = () => sendPrediction("SMALL","manual");
 
@@ -219,23 +235,25 @@ document.getElementById("autoRandom").onclick = e => {
 document.getElementById("markWin").onclick = () => markResult("WIN");
 document.getElementById("markLoss").onclick = () => markResult("LOSS");
 
-function markResult(r) {
-    const last = history.slice().reverse().find(x => !x.result);
+async function markResult(res) {
+    let last = history.slice().reverse().find(r => !r.result);
     if (!last) return log("No unmarked entries.");
-    last.result = r;
+    last.result = res;
     saveHistory();
     renderHistory();
+    const sticker = res==="WIN"?STICKERS.big_win:STICKERS.big_loss;
+    sendSticker(sticker);
 }
 
-/* EXPORT CSV */
 document.getElementById("exportCSV").onclick = () => {
     const rows = [["time_utc","period","prediction","result","notes"]];
     history.forEach(r => rows.push([r.ts,r.period,r.prediction,r.result||"",r.notes||""]));
     const csv = rows.map(r=>r.join(",")).join("\n");
-    const blob = new Blob([csv],{type:"text/csv"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "bunny_history.csv";
+
+    const blob=new Blob([csv],{type:"text/csv"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="bunny_history.csv";
     a.click();
 };
 
